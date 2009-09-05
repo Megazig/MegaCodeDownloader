@@ -68,7 +68,9 @@ void SetTextInfo( int color_fg , int color_bg , int attribute ) {
 //	Returns:	None
 //
 
-	printf( "\x1b[%d;%d;%dm" , attribute , color_fg , color_bg );
+	printf( "\x1b[%dm" , attribute );
+	printf( "\x1b[%dm" , color_fg );
+	printf( "\x1b[%dm" , color_bg );
 }
 
 //--------------------------------------------------------------------------------
@@ -157,7 +159,9 @@ void ShowProgramInfo() {
 	printf("\x1b[2;0H");
 	printf("MegaCodeDownloader\n");
 	printf("coded by\n");
+	SetTextInfo( BLINKING_TEXT , GREEN_FG , BLACK_BG );
 	printf("megazig\n");
+	SetTextInfo( RESET_TEXT , WHITE_FG , BLACK_BG );
 }
 
 
@@ -852,8 +856,8 @@ int ShowVCMenu() {
 		// Return selection if A pressed
 		if ( pressed & WPAD_BUTTON_A    ) return pos + 4;
 
-		if ( pos < 1  ) pos =  1;
-		if ( pos > 10 ) pos = 10;
+		if ( pos < 1 ) pos =  1;
+		if ( pos > 9 ) pos = 9;
 
 		PrintPositioned(  2 , 0 , "Choose a game type:\n\n" );
 		PrintPositioned(  4 , 4 , "NES / Famicom\n");
@@ -865,7 +869,6 @@ int ShowVCMenu() {
 		PrintPositioned( 10 , 4 , "MSX\n" );
 		PrintPositioned( 11 , 4 , "TurboGraFx-16\n" );
 		PrintPositioned( 12 , 4 , "TurboGraFx-CD\n" );
-		PrintPositioned( 17 , 4 , "Genesis / MegaDrive\n" );
 		PrintPositioned( oldpos + 3 , 1 , " " );
 		PrintPositioned( pos    + 3 , 1 , ">" );
 
