@@ -948,6 +948,7 @@ int main(int argc, char **argv) {
 	int ret;
 	int type, region;
 	int success = 0;
+
 	//char GameList[MAX_GAME_COUNT][2][MAX_NAME_LENGTH];
 	char * GameList = (char*)malloc( MAX_GAME_COUNT * 2 * MAX_NAME_LENGTH * sizeof(char) );
 
