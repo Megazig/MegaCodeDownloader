@@ -227,7 +227,6 @@ void Init() {
 	PrintPositioned( 16 , 45 , "COMPLETE\n" );
 
 	//printf("IP Address: %s\n", myIpAddy);
-
 	free(myIpAddy);
 }
 
@@ -255,11 +254,15 @@ void PrintCharTerminated( char * text , char terminator ) {
 //
 
 	char * end = strchr( text , terminator );
-	int length = end - text;
-	int i;
-	for ( i = 0 ; i < length ; i++ )
-		printf("%.1s", text + i );
-	printf("\n");
+	if ( end != NULL ) {
+		int length = end - text;
+		int i;
+		for ( i = 0 ; i < length ; i++ )
+			printf("%.1s", text + i );
+		printf("\n");
+	} else {
+		printf( "%s\n" , text );
+	}
 }
 
 //--------------------------------------------------------------------------------
@@ -429,9 +432,11 @@ int DownloadCodes( int game , int type , char * GameList ) {
 	PrintPositioned( 2 , 0 , "" );
 	//printf( "hostname is : %s and filepath is : %s\n" , hostname , filepath );
 
-	struct hostent *host = net_gethostbyname(hostname);				// gets host info
+	// Get host info
+	struct hostent *host = net_gethostbyname(hostname);
 	struct sockaddr_in server;
-	int socket = net_socket( AF_INET , SOCK_STREAM , IPPROTO_IP );	// creates socket
+	// Create a socket
+	int socket = net_socket( AF_INET , SOCK_STREAM , IPPROTO_IP );
 	if ( host == NULL ) {
 		printf("host not found at %s :(\n", hostname);
 		free(url);
@@ -557,29 +562,31 @@ int GetGameList( int category , int region , char * GameList ) {
 	chidLetter		= GetGameTypeChar( category );
 	regionLetter	= GetGameRegionChar( region );
 
-	char * page = (char*)malloc( 0xFFFFF * sizeof(char*) );
+	char * page       = (char*)malloc( 0xFFFFF * sizeof(char) );
 	struct httpresponse response;
-	char * url      = (char*)malloc( 40 * sizeof(char) );
+	char * url        = (char*)malloc( 40 * sizeof(char) );
 	strncpy( url , "geckocodes.org/index.php?chid=" , 31 );
-	char * chid     = (char*)malloc(  2 * sizeof(char) );
+	char * chid       = (char*)malloc(  2 * sizeof(char) );
 	sprintf( chid , "%c" , chidLetter );
 	strcat( url , chid );
 	free(chid);
-	const char * re       = "&r=";
+	const char * re   = "&r=";
 	strcat( url , re );
-	char * reg      = (char*)malloc(  2 * sizeof(char) );
+	char * reg        = (char*)malloc(  2 * sizeof(char) );
 	sprintf( reg  , "%c" , regionLetter );
 	strcat( url , reg );
 	free(reg);
-	const char * wild     = "&l=all";
+	const char * wild = "&l=all";
 	strcat( url , wild );
 	char * filepath =  strchr( url , '/' );
 	char * hostname = strndup( url , filepath - url );
 	//printf( "hostname is : %s and filepath is : %s\n" , hostname , filepath );
 
-	struct hostent *host = net_gethostbyname(hostname);				// gets host info
+	// Get host info
+	struct hostent *host = net_gethostbyname(hostname);
 	struct sockaddr_in server;
-	int socket = net_socket( AF_INET , SOCK_STREAM , IPPROTO_IP );	// creates socket
+	// Create a socket
+	int socket = net_socket( AF_INET , SOCK_STREAM , IPPROTO_IP );
 	if ( host == NULL ) {
 		printf("host not found at %s :(\n", hostname);
 		free(page);
@@ -728,7 +735,7 @@ int ShowGameList( int count , char * GameList) {
 	int max = 20;
 	if ( count < 20 ) max = count;
 
-	printf("\x1b[2J");
+	ClearText( );
 
 	while(1){
 		oldpos = pos;
@@ -789,7 +796,7 @@ int ShowGameRegionMenu() {
 	int pos = 1;
 	int oldpos = 1;
 
-	printf("\x1b[2J");
+	ClearText( );
 
 	while(1){
 		oldpos = pos;
@@ -835,7 +842,7 @@ int ShowVCMenu() {
 	int pos = 1;
 	int oldpos = 1;
 
-	printf("\x1b[2J");
+	ClearText( );
 
 	while(1){
 		oldpos = pos;
@@ -885,7 +892,7 @@ int ShowGameTypeMenu() {
 	int pos = 1;
 	int oldpos = 1;
 
-	printf("\x1b[2J");
+	ClearText( );
 
 	while(1){
 		oldpos = pos;
@@ -935,8 +942,7 @@ int main(int argc, char **argv) {
 	//unsigned int array[20];
 	//int ret = stuff( array );
 
-	printf("\x1b[20;0H");
-	printf("Press HOME to exit or any other button to continue\n");
+	PrintPositioned( 20 , 0 , "Press HOME to exit or any other button to continue\n");
 	WaitForButtonPress();
 
 	int ret;
