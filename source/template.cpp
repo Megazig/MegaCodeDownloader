@@ -6,6 +6,8 @@
 #include <string.h>
 #include <fat.h>
 
+#define		DEBUG			0
+
 #define		EFATINIT		-1
 #define		ENETINIT		-2
 
