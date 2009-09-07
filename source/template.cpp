@@ -47,7 +47,7 @@ static GXRModeObj *rmode = NULL;
 #include <stdint.h>
 int stuff( unsigned int * output ); 
 
-char HWButton = -1;
+s8 HWButton = -1;
 
 struct httpresponse{
 	float  version;
@@ -73,7 +73,7 @@ void WiiResetPressed() {
 }
 
 //--------------------------------------------------------------------------------
-void WIiPowerPressed() {
+void WiiPowerPressed() {
 //--------------------------------------------------------------------------------
 //
 //	Params:		None
