@@ -47,6 +47,8 @@ static GXRModeObj *rmode = NULL;
 #include <stdint.h>
 int stuff( unsigned int * output ); 
 
+char HWButton = -1;
+
 struct httpresponse{
 	float  version;
 	int    response_code;
@@ -59,6 +61,36 @@ struct httpresponse{
 	char * content_type;
 	char * charset;
 };
+
+//--------------------------------------------------------------------------------
+void WiiResetPressed() {
+//--------------------------------------------------------------------------------
+//
+//	Params:		None
+//	Returns:	None
+//
+	HWButton = SYS_RETURNTOMENU;
+}
+
+//--------------------------------------------------------------------------------
+void WIiPowerPressed() {
+//--------------------------------------------------------------------------------
+//
+//	Params:		None
+//	Returns:	None
+//
+	HWButton = SYS_POWEROFF_STANDBY;
+}
+
+//--------------------------------------------------------------------------------
+void WiimotePowerPressed( int channel ) {
+//--------------------------------------------------------------------------------
+//
+//	Params:		channel		Channel of wiimote whose power button was pressed
+//	Returns:	None
+//
+	HWButton = SYS_POWEROFF_STANDBY;
+}
 
 //--------------------------------------------------------------------------------
 void SetTextInfo( int color_fg , int color_bg , int attribute ) {
@@ -144,6 +176,8 @@ void WaitForButtonPress() {
 		if ( pressed & WPAD_BUTTON_RIGHT ) break;
 
 		// Add check for Reset to return to loader
+		if ( HWButton != -1 )
+			SYS_ResetSystem( HWButton , 0 , 0 );
 
 		// Wait for the next frame
 		VIDEO_WaitVSync();
@@ -206,6 +240,10 @@ void Init() {
 	// Wait for Video setup to complete
 	VIDEO_WaitVSync();
 	if(rmode->viTVMode&VI_NON_INTERLACE) VIDEO_WaitVSync();
+
+	SYS_SetResetCallback( WiiResetPressed );
+	SYS_SetPowerCallback( WiiPowerPressed );
+	WPAD_SetPowerButtonCallback( WiimotePowerPressed );
 
 	printf("\x1b[2J");
 	printf("\x1b[2;0H");
