@@ -1,15 +1,32 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <gccore.h>
+#include <ogcsys.h>
 #include <wiiuse/wpad.h>
 #include <network.h>
 #include <string.h>
-#include <fat.h>
+#include <unistd.h>
+// REMOVE FAT
+// #include <fat.h>
+// ADD ELM
+#include <elm.h>
+
+/*
+#include "FreeTypeGX.h"
+#include "video.h"
+#include "audio.h"
+#include "menu.h"
+#include "input.h"
+#include "filelist.h"
+#include "demo.h"
+*/
 
 #define		DEBUG			0
 
 #define		EFATINIT		-1
 #define		ENETINIT		-2
+
+#define		EELMMOUNT		-3
 
 #define		MAX_GAME_COUNT	250
 #define		MAX_NAME_LENGTH	70
@@ -47,6 +64,7 @@ static GXRModeObj *rmode = NULL;
 #include <stdint.h>
 int stuff( unsigned int * output ); 
 
+s32 ExitRequested = 0;
 s8 HWButton = -1;
 
 struct httpresponse{
@@ -175,7 +193,7 @@ void WaitForButtonPress() {
 		if ( pressed & WPAD_BUTTON_LEFT ) break;
 		if ( pressed & WPAD_BUTTON_RIGHT ) break;
 
-		// Add check for Reset to return to loader
+		// Add check for Reset or Power button
 		if ( HWButton != -1 )
 			SYS_ResetSystem( HWButton , 0 , 0 );
 
@@ -249,6 +267,7 @@ void Init() {
 	printf("\x1b[2;0H");
 	ShowProgramInfo();
 
+	/*
 	PrintPositioned( 15 , 0 , "Initializing FAT File System..........." );
 	if ( !fatInitDefault() ) {
 		PrintPositioned( 15 , 45 , "fatInitDefault failed :( \n" );
@@ -256,6 +275,14 @@ void Init() {
 		ExitToLoader( EFATINIT );
 	}
 	PrintPositioned( 15 , 45 , "COMPLETE\n" );
+	*/
+	PrintPositioned( 15 , 0 , "Initializing FAT File System.........." );
+	if ( ELM_Mount() & 1 ) {
+		PrintPositioned( 15 , 45 , "ELM_Mount failed :( \n" );
+		WaitForButtonPress();
+		ExitToLoader( EELMMOUNT );
+	}
+	PrintPositioned( 15 , 0 , "COMPLETE\n" );
 
 	PrintPositioned( 16 , 0 , "Initializing Network..................." );
 	char * myIpAddy = (char*)malloc(16 * sizeof(char));
@@ -514,10 +541,18 @@ int DownloadCodes( int game , int type , char * GameList ) {
 	int read = 0;
 	response.text = (char*)malloc( sizeof(char) * 32 );
 	char * filename = (char*)malloc( 50 * sizeof(char) );
-	strncpy( filename , "sd:/txtcodes/" , 14 );
+	strncpy( filename , "elm:/sd/txtcodes/" , 14 );
 	strncat( filename , &GameList[ ( game * 2 * MAX_NAME_LENGTH ) + MAX_NAME_LENGTH ] , GetStringLengthTerminated( &GameList[ ( game * 2 * MAX_NAME_LENGTH ) + MAX_NAME_LENGTH ] , '[' ) - 1 );
 	strncat( filename , ".txt" , 5 );
 	FILE * fp = fopen( filename , "w" );
+	if ( fp == NULL ) {
+		printf( "Error opening %s\n" , filename );
+		int err = ELM_GetError();
+		printf( "Error code: %d\n" , err );
+		ELM_Unmount();
+		WaitForButtonPress();
+		exit(1);
+	}
 	char * line = (char*)malloc( bufferlen );
 	char * linebegin;
 	char * lineend;
@@ -663,7 +698,15 @@ int GetGameList( int category , int region , char * GameList ) {
 	unsigned int received = 0;
 	int read = 0;
 	response.text = (char*)malloc( sizeof(char) * 32 );
-	FILE * fp = fopen( "sd:/temp.txt" , "w" );
+	FILE * fp = fopen( "elm:/sd/temp.txt" , "w" );
+	if ( fp == NULL ) {
+		printf( "Error opening elm:/sd/temp.txt\n" );
+		int err = ELM_GetError();
+		printf( "Error code: %d\n" , err );
+		ELM_Unmount();
+		WaitForButtonPress();
+		exit(1);
+	}
 	char * line = (char*)malloc( bufferlen );
 	char * linebegin;
 	char * lineend;
