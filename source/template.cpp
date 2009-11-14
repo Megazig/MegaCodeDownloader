@@ -505,6 +505,13 @@ int DownloadCodes( int game , int type , char * GameList ) {
 	char chid = GetGameTypeChar( type );
 
 	struct httpresponse response;
+	text = NULL;
+	date = NULL;
+	modified = NULL;
+	server = NULL;
+	content_type = NULL;
+	charset = NULL;
+
 	char * url = NULL;
 	url = (char*)malloc( 40 * sizeof(char) );
 	if ( url == NULL ) {
@@ -769,6 +776,13 @@ int GetGameList( int category , int region , char * GameList ) {
 		ExitToLoader(-1);
 	}
 	struct httpresponse response;
+	text = NULL;
+	date = NULL;
+	modified = NULL;
+	server = NULL;
+	content_type = NULL;
+	charset = NULL;
+
 	char * url = NULL;
 	url = (char*)malloc( 40 * sizeof(char) );
 	if ( url == NULL ) {
