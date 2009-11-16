@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<app version="1">
+    <name>MegaCodeDownloader</name>
+    <coder>Megazig</coder>
+    <version>1.0</version>
+    <release_date>200909060000</release_date>
+    <short_description>Code Downloader for Ocarina/GechoOS</short_description> 
+    <long_description>Ocarina cheat code downloader for the wii. Programmed to be open-source and
+easily updateable with extra features.  Uses geckocodes.org for cheat code
+downloads.  Big thanks to James0x57 for his great site and compilation of codes.</long_description>
+</app>
