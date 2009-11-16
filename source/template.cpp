@@ -8,9 +8,7 @@
 #include <wiiuse/wpad.h>
 #include <network.h>
 #include <stdint.h>
-// REMOVE FAT
-// #include <fat.h>
-// ADD ELM
+
 extern "C" {
 #include <elm.h>
 #include <usync.h>
@@ -28,9 +26,7 @@ extern "C" {
 
 #define		DEBUG			0
 
-#define		EFATINIT		-1
 #define		ENETINIT		-2
-
 #define		EELMMOUNT		-3
 
 #define		MAX_GAME_COUNT	250
@@ -271,16 +267,6 @@ void Init() {
 	printf("\x1b[2;0H");
 	ShowProgramInfo();
 
-	/*
-	PrintPositioned( 15 , 0 , "Initializing FAT File System..........." );
-	if ( !fatInitDefault() ) {
-		PrintPositioned( 15 , 45 , "fatInitDefault failed :( \n" );
-		WaitForButtonPress();
-		ExitToLoader( EFATINIT );
-	}
-	PrintPositioned( 15 , 45 , "COMPLETE\n" );
-	*/
-
 	PrintPositioned( 15 , 0 , "Initializing FAT File System.........." );
 	uSyncInit();
 	if ( ELM_Mount() & 1 ) {
@@ -492,7 +478,7 @@ int DownloadCodes( int game , int type , char * GameList ) {
 //	Returns:	0 for success , negative for failure		as Integer
 //
 
-	PrintPositioned( 26 , 10 , "Downloading Codes\n");
+	PrintPositioned( 26 , 19 , "Downloading Codes\n");
 
 	char * codes = NULL;
 	codes = (char*)malloc( 0xFFFFF * sizeof(char) );
@@ -549,7 +535,7 @@ int DownloadCodes( int game , int type , char * GameList ) {
 	memcpy( &server.sin_addr , host->h_addr_list[0] , host->h_length );
 	if ( net_connect( socket , (struct sockaddr*)&server , sizeof(server) ) ) {
 		printf("failed to connect :(\n");
-		WaitForButtonPress();
+		//WaitForButtonPress();
 		if ( url != NULL )
 			free(url);
 		if ( link != NULL )
@@ -573,16 +559,16 @@ int DownloadCodes( int game , int type , char * GameList ) {
 	int len  = strlen( getstring );
 	int sent = net_write( socket , getstring , len );
 	//printf( "getstring free\n" );
-	WaitForButtonPress();
+	//WaitForButtonPress();
 	if ( getstring != NULL )
 		free(getstring);
 	//printf( "getstring free done\n" );
-	WaitForButtonPress();
+	//WaitForButtonPress();
 	if ( sent < len )
 		printf("sent %d of %d bytes\n", sent, len);
 	int bufferlen = 1025;
 	//printf( "buf alloc\n" );
-	WaitForButtonPress();
+	//WaitForButtonPress();
 	char * buf = NULL;
 	buf = (char*)malloc( bufferlen );
 	if ( buf == NULL ) {
@@ -592,19 +578,20 @@ int DownloadCodes( int game , int type , char * GameList ) {
 	unsigned int received = 0;
 	int read = 0;
 	//printf( "response text alloc\n" );
-	WaitForButtonPress();
+	//WaitForButtonPress();
+	response.text = NULL;
 	response.text = (char*)malloc( sizeof(char) * 32 );
 	if ( response.text == NULL ) {
 		printf( "failed to alloc for response.text in DownloadCodes\n" );
 		ExitToLoader( -1 );
 	}
 	//printf( "set NULLs\n" );
-	WaitForButtonPress();
+	//WaitForButtonPress();
 	response.charset = NULL;
 	response.modified = NULL;
 	response.content_type = NULL;
 	//printf( "filename alloc\n" );
-	WaitForButtonPress();
+	//WaitForButtonPress();
 	char * filename = NULL;
 	filename = (char*)malloc( 100 * sizeof(char) );
 	if ( filename == NULL ) {
@@ -615,7 +602,7 @@ int DownloadCodes( int game , int type , char * GameList ) {
 	strncat( filename , &GameList[ ( game * 2 * MAX_NAME_LENGTH ) + MAX_NAME_LENGTH ] , GetStringLengthTerminated( &GameList[ ( game * 2 * MAX_NAME_LENGTH ) + MAX_NAME_LENGTH ] , '[' ) - 1 );
 	strncat( filename , ".txt" , 5 );
 	//printf( "fp open\n" );
-	WaitForButtonPress();
+	//WaitForButtonPress();
 	FILE * fp = fopen( filename , "w" );
 	if ( fp == NULL ) {
 		printf( "Error opening %s\n" , filename );
@@ -626,7 +613,7 @@ int DownloadCodes( int game , int type , char * GameList ) {
 		ExitToLoader(1);
 	}
 	//printf( "line alloc\n" );
-	WaitForButtonPress();
+	//WaitForButtonPress();
 	char * line = NULL;
 	line = (char*)malloc( bufferlen );
 	if ( line == NULL ) {
@@ -813,7 +800,7 @@ int GetGameList( int category , int region , char * GameList ) {
 	int socket = net_socket( AF_INET , SOCK_STREAM , IPPROTO_IP );
 	if ( host == NULL ) {
 		printf("host not found at %s :(\n", hostname);
-		WaitForButtonPress();
+		//WaitForButtonPress();
 		if ( page != NULL )
 			free(page);
 		if ( url != NULL )
@@ -834,7 +821,7 @@ int GetGameList( int category , int region , char * GameList ) {
 	memcpy( &server.sin_addr , host->h_addr_list[0] , host->h_length );
 	if ( net_connect( socket , (struct sockaddr*)&server , sizeof(server) ) ) {
 		printf("failed to connect :(\n");
-		WaitForButtonPress();
+		//WaitForButtonPress();
 		if ( page != NULL )
 			free(page);
 		if ( url != NULL )
@@ -1230,7 +1217,8 @@ int main(int argc, char **argv) {
 	int success = 0;
 
 	//char GameList[MAX_GAME_COUNT][2][MAX_NAME_LENGTH];
-	char * GameList = (char*)malloc( MAX_GAME_COUNT * 2 * MAX_NAME_LENGTH * sizeof(char) );
+	char * GameList = NULL;
+	GameList = (char*)malloc( MAX_GAME_COUNT * 2 * MAX_NAME_LENGTH * sizeof(char) );
 	if ( GameList == NULL ) {
 		printf( "failed to allocate buffer for GameList in main\n" );
 		ExitToLoader(-1);
@@ -1270,6 +1258,7 @@ int main(int argc, char **argv) {
 				ret = DownloadCodes( ret , type , GameList );
 				PrintPositioned( 27 , 10 , "Code Downloaded. Press A to download another.\n" );
 				PrintPositioned( 28 , 10 , "Press HOME to exit.\n" );
+				WaitForButtonPress();
 			}
 		}
 	}
