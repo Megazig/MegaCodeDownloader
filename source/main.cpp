@@ -1,346 +1,4 @@
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <malloc.h>
-#include <ogcsys.h>
-#include <gccore.h>
-#include <wiiuse/wpad.h>
-#include <network.h>
-#include <stdint.h>
-
-extern "C" {
-#include <elm.h>
-#include <usync.h>
-}
-
-/*
-#include "FreeTypeGX.h"
-#include "video.h"
-#include "audio.h"
-#include "menu.h"
-#include "input.h"
-#include "filelist.h"
-#include "demo.h"
-*/
-
-#define		DEBUG			0
-
-#define		ENETINIT		-2
-#define		EELMMOUNT		-3
-
-#define		MAX_GAME_COUNT	250
-#define		MAX_NAME_LENGTH	70
-
-// Colors
-#define		BLACK_FG		30
-#define		BLACK_BG		40
-#define		RED_FG			31
-#define		RED_BG			41
-#define		GREEN_FG		32
-#define		GREEN_BG		42
-#define		YELLOW_FG		33
-#define		YELLOW_BG		43
-#define		BLUE_FG			34
-#define		BLUE_BG			44
-#define		MAGENTA_FG		35
-#define		MAGENTA_BG		45
-#define		CYAN_FG			36
-#define		CYAN_BG			46
-#define		WHITE_FG		37
-#define		WHILTE_BG		47
-
-// Text Styles
-#define		RESET_TEXT		0
-#define		BRIGHT_TEXT		1
-#define		DIM_TEXT		2
-#define		UNDERSCORE_TEXT	3
-#define		BLINKING_TEXT	4
-#define		REVERSE_TEXT	5
-#define		HIDDEN_TEXT		6
-
-static void *xfb = NULL;
-static GXRModeObj *rmode = NULL;
-
-int stuff( unsigned int * output ); 
-
-s32 ExitRequested = 0;
-s8 HWButton = -1;
-
-struct httpresponse{
-	float  version;
-	int    response_code;
-	char * text;
-	char * date;
-	char * modified;
-	char * server;
-	//size_t content_length;
-	int    content_length;
-	char * content_type;
-	char * charset;
-};
-
-//--------------------------------------------------------------------------------
-void WiiResetPressed() {
-//--------------------------------------------------------------------------------
-//
-//	Params:		None
-//	Returns:	None
-//
-	HWButton = SYS_RETURNTOMENU;
-}
-
-//--------------------------------------------------------------------------------
-void WiiPowerPressed() {
-//--------------------------------------------------------------------------------
-//
-//	Params:		None
-//	Returns:	None
-//
-	HWButton = SYS_POWEROFF_STANDBY;
-}
-
-//--------------------------------------------------------------------------------
-void WiimotePowerPressed( int channel ) {
-//--------------------------------------------------------------------------------
-//
-//	Params:		channel		Channel of wiimote whose power button was pressed
-//	Returns:	None
-//
-	HWButton = SYS_POWEROFF_STANDBY;
-}
-
-//--------------------------------------------------------------------------------
-void SetTextInfo( int color_fg , int color_bg , int attribute ) {
-//--------------------------------------------------------------------------------
-//
-//	Params:		color_fg			Foreground Color For Text
-//				color_bg			Background Color For Text
-//				attribute			Text Style
-//	Returns:	None
-//
-
-	printf( "\x1b[%dm" , attribute );
-	printf( "\x1b[%dm" , color_fg );
-	printf( "\x1b[%dm" , color_bg );
-}
-
-//--------------------------------------------------------------------------------
-void ClearText( ) {
-//--------------------------------------------------------------------------------
-//
-//	Params:		None
-//	Returns:	None
-//
-
-	printf( "\x1b[2J" );
-}
-
-//--------------------------------------------------------------------------------
-void PrintPositioned( int y , int x , const char * text ) {
-//--------------------------------------------------------------------------------
-//
-//	Params:		y			Y Position for Text
-//				x			X Position for Text
-//				string		Strig to Print
-//	Returns:	None
-//
-
-	printf("\x1b[%d;%dH", y , x );
-	printf("%s" , text );
-}
-
-//--------------------------------------------------------------------------------
-void ExitToLoader( int return_val ) {
-//--------------------------------------------------------------------------------
-//
-//	Params:		return_val	Value to Pass to Exit
-//	Return:		None		exits
-//
-
-	printf("\x1b[25;5HThanks for using MegaDownloader\n");
-	exit( return_val );
-}
-
-//--------------------------------------------------------------------------------
-void WaitForButtonPress() {
-//--------------------------------------------------------------------------------
-//
-//	Params:		None
-//	Return:		None
-//
-
-	while(1) {
-
-		// Call WPAD_ScanPads each loop, this reads the latest controller states
-		WPAD_ScanPads();
-
-		// WPAD_ButtonsDown tells us which buttons were pressed in this loop
-		// this is a "one shot" state which will not fire again until the button has been released
-		u32 pressed = WPAD_ButtonsDown(0);
-
-		// We return to the launcher application when home is pressed
-		if ( pressed & WPAD_BUTTON_HOME ) ExitToLoader(0);
-		// We break the waiting loop with any other buttons
-		if ( pressed & WPAD_BUTTON_A ) break;
-		if ( pressed & WPAD_BUTTON_B ) break;
-		if ( pressed & WPAD_BUTTON_1 ) break;
-		if ( pressed & WPAD_BUTTON_2 ) break;
-		if ( pressed & WPAD_BUTTON_PLUS ) break;
-		if ( pressed & WPAD_BUTTON_MINUS ) break;
-		if ( pressed & WPAD_BUTTON_UP ) break;
-		if ( pressed & WPAD_BUTTON_DOWN ) break;
-		if ( pressed & WPAD_BUTTON_LEFT ) break;
-		if ( pressed & WPAD_BUTTON_RIGHT ) break;
-
-		// Add check for Reset or Power button
-		if ( HWButton != -1 )
-			SYS_ResetSystem( HWButton , 0 , 0 );
-
-		// Wait for the next frame
-		VIDEO_WaitVSync();
-	}
-}
-
-//--------------------------------------------------------------------------------
-void ShowProgramInfo() {
-//--------------------------------------------------------------------------------
-//
-//	Params:		None
-//	Returns:	None
-//
-
-	printf("\x1b[2;0H");
-	printf("MegaCodeDownloader\n");
-	printf("coded by\n");
-	SetTextInfo( BLINKING_TEXT , GREEN_FG , BLACK_BG );
-	printf("megazig\n");
-	SetTextInfo( RESET_TEXT , WHITE_FG , BLACK_BG );
-}
-
-
-//--------------------------------------------------------------------------------
-void Init() {
-//--------------------------------------------------------------------------------
-//
-//	Params:		None
-//	Returns:	None
-//
-
-	// Initialise the video system
-	VIDEO_Init();
-	
-	// This function initialises the attached controllers
-	WPAD_Init();
-	
-	// Obtain the preferred video mode from the system
-	// This will correspond to the settings in the Wii menu
-	rmode = VIDEO_GetPreferredMode(NULL);
-
-	// Allocate memory for the display in the uncached region
-	xfb = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode));
-	
-	// Initialise the console, required for printf
-	console_init(xfb,20,20,rmode->fbWidth,rmode->xfbHeight,rmode->fbWidth*VI_DISPLAY_PIX_SZ);
-	
-	// Set up the video registers with the chosen mode
-	VIDEO_Configure(rmode);
-	
-	// Tell the video hardware where our display memory is
-	VIDEO_SetNextFramebuffer(xfb);
-	
-	// Make the display visible
-	VIDEO_SetBlack(FALSE);
-
-	// Flush the video register changes to the hardware
-	VIDEO_Flush();
-
-	// Wait for Video setup to complete
-	VIDEO_WaitVSync();
-	if(rmode->viTVMode&VI_NON_INTERLACE) VIDEO_WaitVSync();
-
-	SYS_SetResetCallback( WiiResetPressed );
-	SYS_SetPowerCallback( WiiPowerPressed );
-	WPAD_SetPowerButtonCallback( WiimotePowerPressed );
-
-	printf("\x1b[2J");
-	printf("\x1b[2;0H");
-	ShowProgramInfo();
-
-	PrintPositioned( 15 , 0 , "Initializing FAT File System.........." );
-	uSyncInit();
-	if ( ELM_Mount() & 1 ) {
-		PrintPositioned( 15 , 45 , "ELM_Mount failed :( \n" );
-		WaitForButtonPress();
-		ExitToLoader( EELMMOUNT );
-	}
-	PrintPositioned( 15 , 45 , "COMPLETE\n" );
-
-	PrintPositioned( 16 , 0 , "Initializing Network..................." );
-	char * myIpAddy = (char*)malloc(16 * sizeof(char));
-	if ( myIpAddy == NULL ) {
-		printf( "failed to alloc for IP Address\n" );
-		ExitToLoader( -1 );
-	}
-	if (if_config(myIpAddy, NULL, NULL, true)){
-		PrintPositioned( 16 , 45 , "Failed to initialize network :( \n" );
-		WaitForButtonPress();
-		ExitToLoader( ENETINIT );
-	}
-	PrintPositioned( 16 , 45 , "COMPLETE\n" );
-
-	//printf("IP Address: %s\n", myIpAddy);
-	if ( myIpAddy != NULL )
-		free(myIpAddy);
-}
-
-//--------------------------------------------------------------------------------
-int GetStringLengthTerminated( char * text , char terminator ) {
-//--------------------------------------------------------------------------------
-//
-//	Params:		text		String to get length of
-//				terminator	Character that ends the string
-//	Returns:	None
-//
-
-	char * end = strchr( text , terminator );
-	int length = end - text;
-	return length;
-}
-
-//--------------------------------------------------------------------------------
-void PrintCharTerminated( char * text , char terminator ) {
-//--------------------------------------------------------------------------------
-//
-//	Params:		text		String to print
-//				terminator	Character that ends the string
-//	Returns:	None
-//
-
-	char * end = strchr( text , terminator );
-	if ( end != NULL ) {
-		int length = end - text;
-		int i;
-		for ( i = 0 ; i < length ; i++ )
-			printf("%.1s", text + i );
-		printf("\n");
-	} else {
-		printf( "%s\n" , text );
-	}
-}
-
-//--------------------------------------------------------------------------------
-void PrintResponse( struct httpresponse response ) {
-//--------------------------------------------------------------------------------
-//
-//	Params:		response	HTTP Response
-//	Returns:	None
-//
-
-	printf("\tHTTP/%1.1f %d %s\n", response.version, response.response_code, response.text);
-	printf("\t%d bytes long\tModified: %s\n", response.content_length, response.modified);
-	printf("\tContent Type: %s; charset %s\n\n", response.content_type, response.charset);
-}
+#include "main.h"
 
 //--------------------------------------------------------------------------------
 char * GetGameName( char * body ) {
@@ -480,35 +138,30 @@ int DownloadCodes( int game , int type , char * GameList ) {
 
 	PrintPositioned( 26 , 19 , "Downloading Codes\n");
 
-	char * codes = NULL;
-	codes = (char*)malloc( 0xFFFFF * sizeof(char) );
-	if ( codes == NULL ) {
-		printf( "failed to alloc for codes in DownloadCodes\n" );
-		ExitToLoader( -1 );
-	}
-	//memset( codes , 0 , 0xFFFFF );
-	
 	char chid = GetGameTypeChar( type );
 
 	struct httpresponse response;
 
 	char * url = NULL;
-	url = (char*)malloc( 40 * sizeof(char) );
-	if ( url == NULL ) {
+	try{
+		url = new char[40];
+	} catch (bad_alloc& ba) {
 		printf( "failed to alloc for url in DownloadCodes\n" );
 		ExitToLoader( -1 );
 	}
+
 	strncpy( url , "geckocodes.org" , 16 );
 	char * link = NULL;
-	link = (char*)malloc( 30 * sizeof(char) );
-	if ( link == NULL ) {
+	try{
+		link = new char[30];
+	} catch (bad_alloc& ba) {
 		printf( "failed to alloc for link in DownloadCodes\n" );
 		ExitToLoader( -1 );
 	}
+
 	sprintf( link , "/codes/%c/%s.txt" , chid , &GameList[ game * 2 * MAX_NAME_LENGTH ] );
 	char * filepath = link;
 	char * hostname = url;
-	//ClearText();
 	PrintPositioned( 2 , 0 , "" );
 	//printf( "hostname is : %s and filepath is : %s\n" , hostname , filepath );
 
@@ -519,13 +172,8 @@ int DownloadCodes( int game , int type , char * GameList ) {
 	int socket = net_socket( AF_INET , SOCK_STREAM , IPPROTO_IP );
 	if ( host == NULL ) {
 		printf("host not found at %s :(\n", hostname);
-		//WaitForButtonPress();
-		if ( url != NULL )
-			free(url);
-		if ( link != NULL )
-			free(link);
-		if ( codes != NULL )
-			free(codes);
+		delete[] url;
+		delete[] link;
 		WaitForButtonPress();
 		return -1;
 	}
@@ -535,13 +183,9 @@ int DownloadCodes( int game , int type , char * GameList ) {
 	memcpy( &server.sin_addr , host->h_addr_list[0] , host->h_length );
 	if ( net_connect( socket , (struct sockaddr*)&server , sizeof(server) ) ) {
 		printf("failed to connect :(\n");
-		//WaitForButtonPress();
-		if ( url != NULL )
-			free(url);
-		if ( link != NULL )
-			free(link);
-		if ( codes != NULL )
-			free(codes);
+		delete[] url;
+		delete[] link;
+		net_close(socket);
 		WaitForButtonPress();
 		return -1;
 	} else {
@@ -550,59 +194,54 @@ int DownloadCodes( int game , int type , char * GameList ) {
 	}
 
 	char * getstring = NULL;
-	getstring = (char*)malloc( strlen("GET HTTP/1.0\r\n\r\n") + strlen(filepath) + 1 );
-	if ( getstring == NULL ) {
+	try{
+		getstring = new char[ strlen("GET HTTP/1.0\r\n\r\n") + strlen(filepath) + 1 ];
+	} catch (bad_alloc& ba) {
 		printf( "failed to alloc for getstring in DownloadCodes\n" );
 		ExitToLoader( -1 );
 	}
+
 	sprintf( getstring , "GET %s HTTP/1.0\r\n\r\n" , filepath );
 	int len  = strlen( getstring );
 	int sent = net_write( socket , getstring , len );
-	//printf( "getstring free\n" );
-	//WaitForButtonPress();
-	if ( getstring != NULL )
-		free(getstring);
-	//printf( "getstring free done\n" );
-	//WaitForButtonPress();
+	delete[] getstring;
 	if ( sent < len )
 		printf("sent %d of %d bytes\n", sent, len);
 	int bufferlen = 1025;
-	//printf( "buf alloc\n" );
-	//WaitForButtonPress();
 	char * buf = NULL;
-	buf = (char*)malloc( bufferlen );
-	if ( buf == NULL ) {
+	try{
+		buf = new char[ bufferlen ];
+	} catch (bad_alloc &ba) {
 		printf( "failed to alloc for buf in DownloadCodes\n" );
 		ExitToLoader( -1 );
 	}
+
 	unsigned int received = 0;
 	int read = 0;
-	//printf( "response text alloc\n" );
-	//WaitForButtonPress();
 	response.text = NULL;
-	response.text = (char*)malloc( sizeof(char) * 32 );
-	if ( response.text == NULL ) {
+	try{
+		response.text = new char[32];
+	} catch (bad_alloc &ba) {
 		printf( "failed to alloc for response.text in DownloadCodes\n" );
 		ExitToLoader( -1 );
 	}
-	//printf( "set NULLs\n" );
-	//WaitForButtonPress();
+
 	response.charset = NULL;
 	response.modified = NULL;
 	response.content_type = NULL;
-	//printf( "filename alloc\n" );
-	//WaitForButtonPress();
+
 	char * filename = NULL;
-	filename = (char*)malloc( 100 * sizeof(char) );
-	if ( filename == NULL ) {
+	try{
+		filename = new char[100];
+	} catch (bad_alloc& ba) {
 		printf( "failed to alloc for filename in DownloadCodes\n" );
 		ExitToLoader( -1 );
 	}
+
 	strncpy( filename , "sd:/txtcodes/" , 14 );
 	strncat( filename , &GameList[ ( game * 2 * MAX_NAME_LENGTH ) + MAX_NAME_LENGTH ] , GetStringLengthTerminated( &GameList[ ( game * 2 * MAX_NAME_LENGTH ) + MAX_NAME_LENGTH ] , '[' ) - 1 );
 	strncat( filename , ".txt" , 5 );
-	//printf( "fp open\n" );
-	//WaitForButtonPress();
+
 	FILE * fp = fopen( filename , "w" );
 	if ( fp == NULL ) {
 		printf( "Error opening %s\n" , filename );
@@ -612,14 +251,16 @@ int DownloadCodes( int game , int type , char * GameList ) {
 		WaitForButtonPress();
 		ExitToLoader(1);
 	}
-	//printf( "line alloc\n" );
-	//WaitForButtonPress();
+	delete[] filename;
+
 	char * line = NULL;
-	line = (char*)malloc( bufferlen );
-	if ( line == NULL ) {
+	try{
+		line = new char[ bufferlen ];
+	} catch (bad_alloc& ba) {
 		printf( "failed to alloc for line in DownloadCodes\n" );
 		ExitToLoader( -1 );
 	}
+
 	char * linebegin = NULL;
 	char * lineend = NULL;
 	char dataStarted = 0;
@@ -631,17 +272,6 @@ int DownloadCodes( int game , int type , char * GameList ) {
 		while( (lineend = strchr( linebegin , '\n' ) ) != NULL ) {
 			memset( line , '\0' , 1025 );
 			strncpy( line , linebegin , lineend - linebegin );
-			// /*
-			//printf( "line pointer: \n" );
-			//printf( "%p\n" , line );
-			//WaitForButtonPress();
-			//printf( "buf: \n" );
-			//printf( "%s\n" , buf );
-			//WaitForButtonPress();
-			//printf( "line string: \n" );
-			//printf( "%s\n" , line );
-			//WaitForButtonPress();
-			// */
 			if ( !dataStarted ) {
 				if ( !strncmp( line , "HTTP/" , 5 ) ) {
 					//printf( "http: \n" );
@@ -675,7 +305,6 @@ int DownloadCodes( int game , int type , char * GameList ) {
 				//printf( "data: \n" );
 				//WaitForButtonPress();
 				fprintf( fp , "%s\n" , line );
-				strncat( codes , line , 0xfff );
 			}
 			linebegin = lineend + 1;
 			//printf( "memset: \n" );
@@ -685,34 +314,26 @@ int DownloadCodes( int game , int type , char * GameList ) {
 		received += read;
 	}
 	received -= headerlength;
+	net_close(socket);
 
-	//printf( "frees: \n" );
-	//WaitForButtonPress();
-	if ( url != NULL )
-		free(url);
-	if ( link != NULL )
-		free(link);
-	if ( line != NULL )
-		free(line);
-	if ( buf != NULL )
-		free(buf);
+	delete[] url;
+	delete[] link;
+	delete[] line;
+	delete[] buf;
 
 	//PrintResponse( response );
-	//printf( "response text free: \n" );
-	//WaitForButtonPress();
-	if ( response.text != NULL )
-		free(response.text);
+	delete[] response.text;
 	//printf( "response charset free: \n" );
 	//WaitForButtonPress();
-	if ( response.text != NULL )
+	if ( response.charset != NULL )
 		free(response.charset);
 	//printf( "response modified free: \n" );
 	//WaitForButtonPress();
-	if ( response.text != NULL )
+	if ( response.modified != NULL )
 		free(response.modified);
 	//printf( "response content type free: \n" );
 	//WaitForButtonPress();
-	if ( response.text != NULL )
+	if ( response.content_type != NULL )
 		free(response.content_type);
 
 	fclose( fp );
@@ -724,9 +345,6 @@ int DownloadCodes( int game , int type , char * GameList ) {
 
 	printf("Codes copied to file\n");
 	WaitForButtonPress();
-
-	if ( codes != NULL )
-		free(codes);
 
 	return 0;
 }
@@ -743,50 +361,54 @@ int GetGameList( int category , int region , char * GameList ) {
 //
 
 	PrintPositioned( 26 , 10 , "Retrieving Game List\n");
-	//WaitForButtonPress();
 
 	char chidLetter , regionLetter;
 	chidLetter		= GetGameTypeChar( category );
 	regionLetter	= GetGameRegionChar( region );
 
 	char * page = NULL;
-	page = (char*)malloc( 0xFFFFF * sizeof(char) );
+	page = new char[0xFFFFF];
 	if ( page == NULL ) {
 		printf( "failed to allocate buffer for page in GetGameList\n" );
 		WaitForButtonPress();
 		ExitToLoader(-1);
 	}
+
 	struct httpresponse response;
 
 	char * url = NULL;
-	url = (char*)malloc( 40 * sizeof(char) );
-	if ( url == NULL ) {
+	try{
+		url = new char[40];
+	} catch (bad_alloc& ba) {
 		printf( "failed to allocate buffer for url in GetGameList\n" );
 		ExitToLoader(-1);
 	}
+
 	strncpy( url , "geckocodes.org/index.php?chid=" , 31 );
 	char * chid = NULL;
-	chid = (char*)malloc( 2 * sizeof(char) );
-	if ( chid == NULL ) {
+	try{
+		chid = new char[2];
+	} catch (bad_alloc& ba) {
 		printf( "failed to allocate buffer for chid in GetGameList\n" );
 		ExitToLoader(-1);
 	}
+
 	sprintf( chid , "%c" , chidLetter );
 	strcat( url , chid );
-	if(chid != NULL)
-		free(chid);
+	delete[] chid;
 	const char * re = "&r=";
 	strcat( url , re );
 	char * reg = NULL;
-	reg = (char*)malloc(  2 * sizeof(char) );
-	if ( chid == NULL ) {
-		printf( "failed to allocate buffer for chid in GetGameList\n" );
+	try{
+		reg = new char[2];
+	} catch (bad_alloc& ba) {
+		printf( "failed to allocate buffer for reg in GetGameList\n" );
 		ExitToLoader(-1);
 	}
+
 	sprintf( reg  , "%c" , regionLetter );
 	strcat( url , reg );
-	if(reg != NULL)
-		free(reg);
+	delete[] reg;
 	const char * wild = "&l=all";
 	strcat( url , wild );
 	char * filepath =  strchr( url , '/' );
@@ -800,11 +422,8 @@ int GetGameList( int category , int region , char * GameList ) {
 	int socket = net_socket( AF_INET , SOCK_STREAM , IPPROTO_IP );
 	if ( host == NULL ) {
 		printf("host not found at %s :(\n", hostname);
-		//WaitForButtonPress();
-		if ( page != NULL )
-			free(page);
-		if ( url != NULL )
-			free(url);
+		delete[] page;
+		delete[] url;
 		if ( hostname != NULL )
 			free(hostname);
 		WaitForButtonPress();
@@ -821,11 +440,9 @@ int GetGameList( int category , int region , char * GameList ) {
 	memcpy( &server.sin_addr , host->h_addr_list[0] , host->h_length );
 	if ( net_connect( socket , (struct sockaddr*)&server , sizeof(server) ) ) {
 		printf("failed to connect :(\n");
-		//WaitForButtonPress();
-		if ( page != NULL )
-			free(page);
-		if ( url != NULL )
-			free(url);
+		delete[] page;
+		delete[] url;
+		net_close(socket);
 		WaitForButtonPress();
 		return -1;
 	} else {
@@ -833,47 +450,42 @@ int GetGameList( int category , int region , char * GameList ) {
 	}
 
 	char * getstring = NULL;
-	getstring = (char*)malloc( strlen("GET HTTP/1.0\r\n\r\n") + strlen(filepath) + 1 );
-	if ( getstring == NULL ) {
+	try{
+		getstring = new char[ strlen("GET HTTP/1.0\r\n\r\n") + strlen(filepath) + 1 ];
+	} catch (bad_alloc& ba) {
 		printf( "failed to allocate buffer for getstring in GetGameList\n" );
 		ExitToLoader(-1);
 	}
+
 	sprintf( getstring , "GET %s HTTP/1.0\r\n\r\n" , filepath );
 	int len  = strlen( getstring );
 	int sent = net_write( socket , getstring , len );
 	if ( sent < len )
 		printf("sent %d of %d bytes\n", sent, len);
-	//printf( "get game list getstring free\n" );
-	//WaitForButtonPress();
-	if ( getstring != NULL )
-		free(getstring);
+	delete[] getstring;
 	int bufferlen = 1025;
 	char * buf = NULL;
-	buf = (char*)malloc( bufferlen );
-	if ( buf == NULL ) {
+	try{
+		buf = new char[ bufferlen ];
+	} catch (bad_alloc& ba) {
 		printf( "failed to allocate buffer for buf in GetGameList\n" );
 		ExitToLoader( -1 );
 	}
+
 	unsigned int received = 0;
 	int read = 0;
 	response.text = NULL;
-	response.text = (char*)malloc( sizeof(char) * 32 );
-	if ( response.text == NULL ) {
+	try{
+		response.text = new char[32];
+	} catch (bad_alloc& ba) {
 		printf( "failed to allocate buffer for response.text in GetGameList\n" );
 		ExitToLoader( -1 );
 	}
-	FILE * fp = fopen( "sd:/temp.txt" , "w" );
-	if ( fp == NULL ) {
-		printf( "Error opening sd:/temp.txt\n" );
-		int err = ELM_GetError();
-		printf( "Error code: %d\n" , err );
-		ELM_Unmount();
-		WaitForButtonPress();
-		ExitToLoader( 1 );
-	}
+
 	char * line = NULL;
-	line = (char*)malloc( bufferlen );
-	if ( line == NULL ) {
+	try{
+		line = new char[ bufferlen ];
+	} catch (bad_alloc& ba) {
 		printf( "failed to allocate buffer for line in GetGameList\n" );
 		ExitToLoader(-1);
 	}
@@ -908,7 +520,6 @@ int GetGameList( int category , int region , char * GameList ) {
 					headerlength = lineend - buf + 1;
 				}
 			} else {
-				//fprintf( fp , "%s\n" , line );
 				strncat( page , line , 1025 );
 			}
 			linebegin = lineend + 1;
@@ -916,21 +527,13 @@ int GetGameList( int category , int region , char * GameList ) {
 		received += read;
 	}
 	received -= headerlength;
+	net_close(socket);
 
-	fclose( fp );
-	//printf( "get game list frees:\n" );
-	//WaitForButtonPress();
-	if ( line != NULL )
-		free(line);
-	if ( buf != NULL )
-		free(buf);
-	if ( url != NULL )
-		free(url);
+	delete[] line;
+	delete[] buf;
+	delete[] url;
 	//PrintResponse( response );
-	//printf( "get game list response text free:\n" );
-	//WaitForButtonPress();
-	if ( response.text != NULL )
-		free(response.text);
+	delete[] response.text;
 	
 	//if ( read == 0 )
 	//	printf( "Reached EOF\n" );
@@ -944,8 +547,7 @@ int GetGameList( int category , int region , char * GameList ) {
 	while( ( strncmp( body+1 , "BODY" , 4 ) != 0 ) && ( strncmp( body+1 , "body" , 4 ) != 0 ) ) {
 		body = strchr( body+1 , '<' );
 		if ( body == NULL ){
-			if ( page != NULL )
-				free(page);
+			delete[] page;
 			return -1;
 		}
 	}
@@ -954,8 +556,7 @@ int GetGameList( int category , int region , char * GameList ) {
 	while( strncmp( body+1 , "div class=title" , 15 ) != 0 ) {
 		body = strchr( body+1 , '<' );
 		if ( ( body == NULL ) || ( strncmp( body + 1 , "/HTML" , 5 ) == 0 ) ){
-			if ( page != NULL )
-				free(page);
+			delete[] page;
 			return -2;
 		}
 	}
@@ -974,12 +575,7 @@ int GetGameList( int category , int region , char * GameList ) {
 		gameCount++;
 	}
 
-	//printf( "get game page free:\n" );
-	//WaitForButtonPress();
-	if ( page != NULL )
-		free(page);
-	//printf( "get game page free done:\n" );
-	//WaitForButtonPress();
+	delete[] page;
 
 	return gameCount;
 }
@@ -1200,12 +796,6 @@ int main(int argc, char **argv) {
 
 	Init();
 
-	// The console understands VT terminal escape codes
-	// This positions the cursor on row 2, column 0
-	// we can use variables for this with format codes too
-	// e.g. printf ("\x1b[%d;%dH", row, column );
-	//printf("\x1b[2;0H");
-	
 	//unsigned int array[20];
 	//int ret = stuff( array );
 
@@ -1215,17 +805,19 @@ int main(int argc, char **argv) {
 	int ret;
 	int type, region;
 	int success = 0;
+	int timeout = 0;
 
-	//char GameList[MAX_GAME_COUNT][2][MAX_NAME_LENGTH];
 	char * GameList = NULL;
-	GameList = (char*)malloc( MAX_GAME_COUNT * 2 * MAX_NAME_LENGTH * sizeof(char) );
-	if ( GameList == NULL ) {
+	try{
+		GameList = new char[ MAX_GAME_COUNT * 2 * MAX_NAME_LENGTH ];
+	} catch (bad_alloc& ba) {
 		printf( "failed to allocate buffer for GameList in main\n" );
 		ExitToLoader(-1);
 	}
 
 	// Main Game Loop
 	while(1){
+		timeout = 0;
 		success = 0;
 		memset( GameList , 0 , MAX_GAME_COUNT * 2 * MAX_NAME_LENGTH );
 
@@ -1242,9 +834,13 @@ int main(int argc, char **argv) {
 				WaitForButtonPress();	
 			}
 			while ( ret == -2 ){
-				//PrintPositioned( 27 , 10 , "GetGameList failed :(\n" );
-				//PrintPositioned( 28 , 10 , "No <div class=title> found\n" );
-				//WaitForButtonPress();
+				timeout++;
+				if ( timeout >= 50 ) {
+					PrintPositioned( 27 , 10 , "GetGameList failed :(\n" );
+					PrintPositioned( 28 , 10 , "No <div class=title> found\n" );
+					WaitForButtonPress();
+					ExitToLoader(-1);
+				}
 				ret = GetGameList( type , region , GameList );
 			}
 			if ( ret == 0 ){
@@ -1263,8 +859,7 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	if ( GameList != NULL )
-		free(GameList);
+	delete[] GameList;
 
 	return 0;
 }
