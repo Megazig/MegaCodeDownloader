@@ -310,8 +310,8 @@ int DownloadCodes( int game , int type , char * GameList ) {
 			//dbgprintf( "linebegin: %.20s lineend: %.20s\n" , linebegin , lineend );
 			linebegin = lineend + 1;
 		}
-		dbgprintf( "memset: buf: %p size: %d\n" , buf , 1025 );
-		memset( buf , 0 , 1025 );
+		dbgprintf( "memset: buf: %p size: %d\n" , buf , bufferlen );
+		memset( buf , 0 , bufferlen );
 		received += read;
 	}
 	received -= headerlength;
@@ -815,6 +815,8 @@ int main(int argc, char **argv) {
 	while(1){
 		timeout = 0;
 		success = 0;
+		dbgprintf( "memset: GameList: %p size: %08x\n" , MAX_GAME_COUNT * 2 * MAX_NAME_LENGTH );
+		dbgprintf( "MAX_GAME_COUNT: %08x\nMAX_NAME_LENGTH: %08x\n" , MAX_GAME_COUNT , MAX_NAME_LENGTH );
 		memset( GameList , 0 , MAX_GAME_COUNT * 2 * MAX_NAME_LENGTH );
 
 		while ( success == 0 ) {
@@ -839,6 +841,7 @@ int main(int argc, char **argv) {
 				}
 				ret = GetGameList( type , region , GameList );
 			}
+			dbgprintf( "ret != 0\nMAX_GAME_COUNT: %08x\nMAX_NAME_LENGTH: %08x\n" , MAX_GAME_COUNT , MAX_NAME_LENGTH );
 			if ( ret == 0 ){
 				success = 1;
 				PrintPositioned( 27 , 10 , "No games found :(\n" );
