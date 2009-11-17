@@ -1,4 +1,4 @@
-#include "utilities/hexdump.h"
+#include "hexdump.h"
 
 char ascii( char character )
 {
@@ -14,7 +14,7 @@ void hexdump( void * d , int len )
 	data = (u8*)d;
 	for ( off = 0 ; off < len ; off += 16 )
 	{
-		printf( "%08x  " , off +data );
+		printf( "%08x  " , (u32)(off + data) );
 		for( i = 0 ; i < 16 ; i++ )
 			if(( i + off ) >= len ) printf("  ");
 			else printf( "%02x " , data[off+i]);
