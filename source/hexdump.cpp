@@ -14,16 +14,16 @@ void hexdump( void * d , int len )
 	data = (u8*)d;
 	for ( off = 0 ; off < len ; off += 16 )
 	{
-		printf( "%08x  " , (u32)(off + data) );
+		dbgprintf( "%08x  " , (u32)(off + data) );
 		for( i = 0 ; i < 16 ; i++ )
 			if(( i + off ) >= len ) printf("  ");
-			else printf( "%02x " , data[off+i]);
+			else dbgprintf( "%02x " , data[off+i]);
 
-		printf(" ");
+		dbgprintf(" ");
 		for(i=0; i<16; i++)
 			if((i+off)>=len) printf(" ");
-			else printf("%c", ascii(data[off+i]));
-		printf("\n");
+			else dbgprintf("%c", ascii(data[off+i]));
+		dbgprintf("\n");
 	}
 }
 

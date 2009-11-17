@@ -201,9 +201,9 @@ void PrintResponse( struct httpresponse response ) {
 //	Returns:	None
 //
 
-	printf("\tHTTP/%1.1f %d %s\n", response.version, response.response_code, response.text);
-	printf("\t%d bytes long\tModified: %s\n", response.content_length, response.modified);
-	printf("\tContent Type: %s; charset %s\n\n", response.content_type, response.charset);
+	dbgprintf("\tHTTP/%1.1f %d %s\n", response.version, response.response_code, response.text);
+	dbgprintf("\t%d bytes long\tModified: %s\n", response.content_length, response.modified);
+	dbgprintf("\tContent Type: %s; charset %s\n\n", response.content_type, response.charset);
 }
 
 //--------------------------------------------------------------------------------

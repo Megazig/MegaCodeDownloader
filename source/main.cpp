@@ -163,7 +163,8 @@ int DownloadCodes( int game , int type , char * GameList ) {
 	char * filepath = link;
 	char * hostname = url;
 	PrintPositioned( 2 , 0 , "" );
-	//printf( "hostname is : %s and filepath is : %s\n" , hostname , filepath );
+
+	dbgprintf( "hostname is : %s and filepath is : %s\n" , hostname , filepath );
 
 	// Get host info
 	struct hostent *host = net_gethostbyname(hostname);
@@ -189,7 +190,7 @@ int DownloadCodes( int game , int type , char * GameList ) {
 		WaitForButtonPress();
 		return -1;
 	} else {
-		//printf("connected :)\n");
+		dbgprintf("connected :)\n");
 		//WaitForButtonPress();
 	}
 
@@ -207,7 +208,7 @@ int DownloadCodes( int game , int type , char * GameList ) {
 	delete[] getstring;
 	if ( sent < len )
 		printf("sent %d of %d bytes\n", sent, len);
-	int bufferlen = 1025;
+	int bufferlen = 4097;
 	char * buf = NULL;
 	try{
 		buf = new char[ bufferlen ];
@@ -269,48 +270,48 @@ int DownloadCodes( int game , int type , char * GameList ) {
 	while( (read = net_read( socket , buf , bufferlen - 1 ) ) > 0 ) {
 		buf[read] = '\0';		// NULL TERMINATE AMOUNT READ
 		linebegin = buf;
+		dbgprintf( "reset linebegin\n" );
+		//hexdump( buf , read );
 		while( (lineend = strchr( linebegin , '\n' ) ) != NULL ) {
 			memset( line , '\0' , 1025 );
 			strncpy( line , linebegin , lineend - linebegin );
+			//dbgprintf( "line: %s\n" , line );
+			//dbgprintf( "buf : %s\n" , buf );
 			if ( !dataStarted ) {
 				if ( !strncmp( line , "HTTP/" , 5 ) ) {
-					//printf( "http: \n" );
-					//WaitForButtonPress();
+					dbgprintf( "http: \n" );
 					sscanf( line , "HTTP/%f %d %s\n" , &(response.version) , &(response.response_code) , response.text );
 				} else if ( !strncmp( line , "Content-Length" , 14 ) ) {
-					//printf( "content-length: \n" );
-					//WaitForButtonPress();
+					dbgprintf( "content-length: \n" );
 					sscanf( line , "Content-Length: %d", &(response.content_length) );
 				} else if ( !strncmp( line , "Content-Type" , 12 ) ) {
-					//printf( "content-type: \n" );
-					//WaitForButtonPress();
+					dbgprintf( "content-type: \n" );
 					char * space = strchr( line  , ' ' );
 					char * sc    = strchr( space , ';' );
 					char * eq    = strchr( sc    , '=' );
 					response.content_type = strndup( ( space + 1 ) , sc - space - 1 );
 					response.charset      = strndup( ( eq + 1 ) ,  lineend - eq - 1 );
 				} else if ( !strncmp( line , "Last-Modified" , 13 ) ) {
-					//printf( "last-modified: \n" );
-					//WaitForButtonPress();
+					dbgprintf( "last-modified: \n" );
 					char * space = strchr( line , ' ' );
 					response.modified = strndup( space , lineend - space );
 				} else if ( !strcmp( line , "\r" ) ) {
-					//printf("end of http header\n");
-					//printf( "end of http header: \n" );
-					//WaitForButtonPress();
+					dbgprintf("end of http header\n");
+					dbgprintf( "end of http header: \n" );
 					dataStarted = 1;
 					headerlength = lineend - buf + 1;
 				}
 			} else {
-				//printf( "data: \n" );
-				//WaitForButtonPress();
+				dbgprintf( "data: \n" );
+				dbgprintf( "%s\n" , line );
 				fprintf( fp , "%s\n" , line );
 			}
+			//dbgprintf( "linebegin: %p lineend: %p\n" , linebegin , lineend );
+			//dbgprintf( "linebegin: %.20s lineend: %.20s\n" , linebegin , lineend );
 			linebegin = lineend + 1;
-			//printf( "memset: \n" );
-			//WaitForButtonPress();
-			memset( buf , 0 , 1025 );
 		}
+		dbgprintf( "memset: buf: %p size: %d\n" , buf , 1025 );
+		memset( buf , 0 , 1025 );
 		received += read;
 	}
 	received -= headerlength;
@@ -321,30 +322,26 @@ int DownloadCodes( int game , int type , char * GameList ) {
 	delete[] line;
 	delete[] buf;
 
-	//PrintResponse( response );
+	PrintResponse( response );
 	delete[] response.text;
-	//printf( "response charset free: \n" );
-	//WaitForButtonPress();
+	dbgprintf( "response charset free: \n" );
 	if ( response.charset != NULL )
 		free(response.charset);
-	//printf( "response modified free: \n" );
-	//WaitForButtonPress();
+	dbgprintf( "response modified free: \n" );
 	if ( response.modified != NULL )
 		free(response.modified);
-	//printf( "response content type free: \n" );
-	//WaitForButtonPress();
+	dbgprintf( "response content type free: \n" );
 	if ( response.content_type != NULL )
 		free(response.content_type);
 
 	fclose( fp );
-	//if ( read == 0 )
-	//	printf( "Reached EOF\n" );
-	if ( read == -1 )
+	if ( read == 0 )
+		dbgprintf( "Reached EOF\n" );
+	else if ( read == -1 )
 		printf( "Read Error\n" );
 	net_close( socket );
 
-	printf("Codes copied to file\n");
-	WaitForButtonPress();
+	dbgprintf("Codes copied to file\n");
 
 	return 0;
 }
@@ -413,7 +410,7 @@ int GetGameList( int category , int region , char * GameList ) {
 	strcat( url , wild );
 	char * filepath =  strchr( url , '/' );
 	char * hostname = strndup( url , filepath - url );
-	//printf( "hostname is : %s and filepath is : %s\n" , hostname , filepath );
+	dbgprintf( "hostname is : %s and filepath is : %s\n" , hostname , filepath );
 
 	// Get host info
 	struct hostent *host = net_gethostbyname(hostname);
@@ -429,8 +426,7 @@ int GetGameList( int category , int region , char * GameList ) {
 		WaitForButtonPress();
 		return -1;
 	}
-	//printf( "get game list hostname free\n" );
-	//WaitForButtonPress();
+	dbgprintf( "get game list hostname free\n" );
 	if ( hostname != NULL )
 		free(hostname);
 
@@ -446,7 +442,7 @@ int GetGameList( int category , int region , char * GameList ) {
 		WaitForButtonPress();
 		return -1;
 	} else {
-		//printf("connected :)\n");
+		dbgprintf("connected :)\n");
 	}
 
 	char * getstring = NULL;
@@ -515,7 +511,7 @@ int GetGameList( int category , int region , char * GameList ) {
 					char * space = strchr( line , ' ' );
 					response.modified = strndup( space , lineend - space );
 				} else if ( !strcmp( line , "\r" ) ) {
-					//printf("end of http header\n");
+					dbgprintf("end of http header\n");
 					dataStarted = 1;
 					headerlength = lineend - buf + 1;
 				}
@@ -532,12 +528,12 @@ int GetGameList( int category , int region , char * GameList ) {
 	delete[] line;
 	delete[] buf;
 	delete[] url;
-	//PrintResponse( response );
+	PrintResponse( response );
 	delete[] response.text;
 	
-	//if ( read == 0 )
-	//	printf( "Reached EOF\n" );
-	if ( read == -1 )
+	if ( read == 0 )
+		dbgprintf( "Reached EOF\n" );
+	else if ( read == -1 )
 		printf( "Read Error\n" );
 	net_close( socket );
 
