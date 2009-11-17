@@ -20,6 +20,7 @@ extern "C" {
 
 #include "common.h"
 #include "netconsole.h"
+#include "hexdump.h"
 
 /*
 #include "FreeTypeGX.h"

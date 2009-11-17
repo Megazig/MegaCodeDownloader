@@ -277,6 +277,8 @@ void Init() {
 	}
 	PrintPositioned( 16 , 45 , "COMPLETE\n" );
 
+	NCconnect(0xc0a80092); // 192.168.0.146
+
 	//printf("IP Address: %s\n", myIpAddy);
 	delete[] myIpAddy;
 }
