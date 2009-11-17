@@ -42,9 +42,6 @@ extern "C" {
 using std::bad_alloc;
 using std::string;
 
-static void *xfb = NULL;
-static GXRModeObj *rmode = NULL;
-
 int stuff( unsigned int * output ); 
 
 struct httpresponse{
@@ -61,3 +58,4 @@ struct httpresponse{
 };
 
 #endif
+

@@ -1,5 +1,11 @@
 #include "common.h"
 
+static void *xfb = NULL;
+static GXRModeObj *rmode = NULL;
+
+s32 ExitRequested = 0;
+s8 HWButton = -1;
+
 //--------------------------------------------------------------------------------
 void WiiResetPressed() {
 //--------------------------------------------------------------------------------

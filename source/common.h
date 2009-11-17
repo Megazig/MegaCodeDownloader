@@ -30,8 +30,7 @@
 #define		REVERSE_TEXT	5
 #define		HIDDEN_TEXT		6
 
-s32 ExitRequested = 0;
-s8 HWButton = -1;
+using std::string;
 
 void WiiResetPressed();
 void WiiPowerPressed();

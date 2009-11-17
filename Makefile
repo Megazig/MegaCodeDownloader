@@ -15,7 +15,8 @@ include $(DEVKITPPC)/wii_rules
 # SOURCES is a list of directories containing source code
 # INCLUDES is a list of directories containing extra header files
 #---------------------------------------------------------------------------------
-TARGET		:=	$(notdir $(CURDIR))
+#TARGET		:=	$(notdir $(CURDIR))
+TARGET		:=	boot
 BUILD		:=	build
 SOURCES		:=	source 
 DATA		:=	data  
@@ -33,7 +34,9 @@ LDFLAGS	=	-g $(MACHDEP) -Wl,-Map,$(notdir $@).map
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
 #---------------------------------------------------------------------------------
-LIBS	:=	-lz -lwiiuse -lbte -lfat -logc -lm
+#LIBS	:=	-lz -lwiiuse -lbte -lfat -logc -lm
+#LIBS	:=	-lz -lwiiuse -lusync -lelm -lbte -logc -lm -lpng
+LIBS	:=	-lwiiuse -lusync -lelm -lbte -logc -lm
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
