@@ -3,8 +3,10 @@
 static void *xfb = NULL;
 static GXRModeObj *rmode = NULL;
 
-s32 ExitRequested = 0;
+//s32 ExitRequested = 0;
 s8 HWButton = -1;
+//struct SSettings Settings;
+int ExitRequested = 0;
 
 //--------------------------------------------------------------------------------
 void WiiResetPressed() {
@@ -98,7 +100,9 @@ void ExitToLoader( int return_val ) {
 //	Return:		None		exits
 //
 
-	printf("\x1b[25;5HThanks for using MegaDownloader\n");
+	dbgprintf("\x1b[25;5HThanks for using MegaDownloader\n");
+	ShutoffRumble();
+	StopGX();
 	exit( return_val );
 }
 
@@ -201,9 +205,12 @@ void PrintResponse( struct httpresponse response ) {
 //	Returns:	None
 //
 
-	dbgprintf("\tHTTP/%1.1f %d %s\n", response.version, response.response_code, response.text);
-	dbgprintf("\t%d bytes long\tModified: %s\n", response.content_length, response.modified);
-	dbgprintf("\tContent Type: %s; charset %s\n\n", response.content_type, response.charset);
+	if ( response.text != NULL )
+		dbgprintf("\tHTTP/%1.1f %d %s\n", response.version, response.response_code, response.text);
+	if ( response.modified != NULL )
+		dbgprintf("\t%d bytes long\tModified: %s\n", response.content_length, response.modified);
+	if ( ( response.content_type != NULL ) && ( response.charset != NULL ) )
+		dbgprintf("\tContent Type: %s; charset %s\n\n", response.content_type, response.charset);
 }
 
 //--------------------------------------------------------------------------------
@@ -214,6 +221,7 @@ void Init() {
 //	Returns:	None
 //
 
+	/*
 	// Initialise the video system
 	VIDEO_Init();
 	
@@ -245,41 +253,53 @@ void Init() {
 	// Wait for Video setup to complete
 	VIDEO_WaitVSync();
 	if(rmode->viTVMode&VI_NON_INTERLACE) VIDEO_WaitVSync();
+	*/
+
+	// Stuff for LibWiiGUI
+	InitVideo();
+	SetupPads();
+	InitAudio();
+	InitFreeType((u8*)font_ttf, font_ttf_size);
+	InitGUIThreads();
 
 	SYS_SetResetCallback( WiiResetPressed );
 	SYS_SetPowerCallback( WiiPowerPressed );
 	WPAD_SetPowerButtonCallback( WiimotePowerPressed );
 
+	/*
 	printf("\x1b[2J");
 	printf("\x1b[2;0H");
 	ShowProgramInfo();
 
 	PrintPositioned( 15 , 0 , "Initializing FAT File System.........." );
+	*/
 	uSyncInit();
 	if ( ELM_Mount() & 1 ) {
-		PrintPositioned( 15 , 45 , "ELM_Mount failed :( \n" );
-		WaitForButtonPress();
+		//PrintPositioned( 15 , 45 , "ELM_Mount failed :( \n" );
+		dbgprintf( "ELM_Mount failed :( \n" );
+		//WaitForButtonPress();
 		ExitToLoader( EELMMOUNT );
 	}
-	PrintPositioned( 15 , 45 , "COMPLETE\n" );
+	//PrintPositioned( 15 , 45 , "COMPLETE\n" );
 
-	PrintPositioned( 16 , 0 , "Initializing Network..................." );
+	//PrintPositioned( 16 , 0 , "Initializing Network..................." );
 	char * myIpAddy = NULL;
 	myIpAddy = new (std::nothrow) char[16];
 	if ( myIpAddy == NULL ) {
-		printf( "failed to alloc for IP Address\n" );
+		dbgprintf( "failed to alloc for IP Address\n" );
 		ExitToLoader( -1 );
 	}
 	if (if_config(myIpAddy, NULL, NULL, true)){
-		PrintPositioned( 16 , 45 , "Failed to initialize network :( \n" );
-		WaitForButtonPress();
+		//PrintPositioned( 16 , 45 , "Failed to initialize network :( \n" );
+		dbgprintf( "Failed to initialize network :( \n" );
+		//WaitForButtonPress();
 		ExitToLoader( ENETINIT );
 	}
-	PrintPositioned( 16 , 45 , "COMPLETE\n" );
+	//PrintPositioned( 16 , 45 , "COMPLETE\n" );
 
 	NCconnect(0xc0a80092); // 192.168.0.146
 
-	//printf("IP Address: %s\n", myIpAddy);
+	dbgprintf("IP Address: %s\n", myIpAddy);
 	delete[] myIpAddy;
 }
 

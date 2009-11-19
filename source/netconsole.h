@@ -10,6 +10,6 @@
 #define dbgprintf NCsend
 
 void NCconnect(u32 ipaddress);
-void NCsend(char * msg, ...);
+void NCsend(const char * msg, ...);
 
 #endif

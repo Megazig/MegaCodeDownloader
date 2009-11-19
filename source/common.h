@@ -47,4 +47,6 @@ void PrintCharTerminated( char * text , char terminator );
 void PrintResponse( struct httpresponse response );
 void Init();
 
+extern int ExitRequested;
+
 #endif

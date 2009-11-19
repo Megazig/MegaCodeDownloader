@@ -29,7 +29,7 @@ void NCconnect(u32 ipaddress)
 	
 }
 
-void NCsend(char *fmt, ...)
+void NCsend(const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);

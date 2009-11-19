@@ -21,42 +21,42 @@ extern "C" {
 #include "common.h"
 #include "netconsole.h"
 #include "hexdump.h"
+#include "download.h"
 
-/*
 #include "FreeTypeGX.h"
 #include "video.h"
 #include "audio.h"
 #include "menu.h"
 #include "input.h"
 #include "filelist.h"
-#include "demo.h"
-*/
-
-#define		DEBUG			0
-
-#define		ENETINIT		-2
-#define		EELMMOUNT		-3
-
-#define		MAX_GAME_COUNT	250
-#define		MAX_NAME_LENGTH	70
-
-using std::bad_alloc;
-using std::string;
 
 int stuff( unsigned int * output ); 
 
-struct httpresponse{
-	float  version;
-	int    response_code;
-	char * text;
-	char * date;
-	char * modified;
-	char * server;
-	//size_t content_length;
-	int    content_length;
-	char * content_type;
-	char * charset;
+enum {
+	METHOD_AUTO,
+	METHOD_SD,
+	METHOD_USB,
+	METHOD_DVD,
+	METHOD_SMB,
+	METHOD_MC_SLOTA,
+	METHOD_MC_SLOTB,
+	METHOD_SD_SLOTA,
+	METHOD_SD_SLOTB
 };
+
+struct SSettings {
+    int		AutoLoad;
+    int		AutoSave;
+    int		LoadMethod;
+	int		SaveMethod;
+	char	Folder1[256]; // Path to files
+	char	Folder2[256]; // Path to files
+	char	Folder3[256]; // Path to files
+};
+extern struct SSettings Settings;
+
+void ExitApp();
+extern FreeTypeGX *fontSystem[];
 
 #endif
 

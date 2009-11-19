@@ -18,9 +18,9 @@ include $(DEVKITPPC)/wii_rules
 #TARGET		:=	$(notdir $(CURDIR))
 TARGET		:=	boot
 BUILD		:=	build
-SOURCES		:=	source 
+SOURCES		:=	source source/libwiigui source/images source/fonts source/sounds
 DATA		:=	data  
-INCLUDES	:=
+INCLUDES	:=	source
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -34,9 +34,8 @@ LDFLAGS	=	-g $(MACHDEP) -Wl,-Map,$(notdir $@).map
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
 #---------------------------------------------------------------------------------
-#LIBS	:=	-lz -lwiiuse -lbte -lfat -logc -lm
 #LIBS	:=	-lz -lwiiuse -lusync -lelm -lbte -logc -lm -lpng
-LIBS	:=	-lwiiuse -lusync -lelm -lbte -logc -lm
+LIBS	:=	-lwiiuse -lusync -lelm -lbte -lasnd -lpng -logc -lm -lz -lvorbisidec -lfreetype
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
@@ -66,6 +65,10 @@ CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 sFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.S)))
 BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
+TTFFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.ttf)))
+PNGFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.png)))
+OGGFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.ogg)))
+PCMFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.pcm)))
 
 #---------------------------------------------------------------------------------
 # use CXX for linking C++ projects, CC for standard C
@@ -78,7 +81,9 @@ endif
 
 export OFILES	:=	$(addsuffix .o,$(BINFILES)) \
 					$(CPPFILES:.cpp=.o) $(CFILES:.c=.o) \
-					$(sFILES:.s=.o) $(SFILES:.S=.o)
+					$(sFILES:.s=.o) $(SFILES:.S=.o) \
+					$(TTFFILES:.ttf=.ttf.o) $(PNGFILES:.png=.png.o) \
+					$(OGGFILES:.ogg=.ogg.o) $(PCMFILES:.pcm=.pcm.o)
 
 #---------------------------------------------------------------------------------
 # build a list of include paths
@@ -128,6 +133,25 @@ $(OUTPUT).elf: $(OFILES)
 #---------------------------------------------------------------------------------
 %.jpg.o	:	%.jpg
 #---------------------------------------------------------------------------------
+	@echo $(notdir $<)
+	$(bin2o)
+
+#---------------------------------------------------------------------------------
+# This rule links in binary data with .ttf, .png, and .mp3 extensions
+#---------------------------------------------------------------------------------
+%.ttf.o : %.ttf
+	@echo $(notdir $<)
+	$(bin2o)
+
+%.png.o : %.png
+	@echo $(notdir $<)
+	$(bin2o)
+	
+%.ogg.o : %.ogg
+	@echo $(notdir $<)
+	$(bin2o)
+	
+%.pcm.o : %.pcm
 	@echo $(notdir $<)
 	$(bin2o)
 
