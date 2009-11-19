@@ -239,6 +239,8 @@ int DownloadCodes( int game , int type , char * GameList ) {
 		ExitToLoader( -1 );
 	}
 
+	if(chdir("sd:/txtcodes") != 0)
+		mkdir("sd:/txtcodes", 0);
 	strncpy( filename , "sd:/txtcodes/" , 14 );
 	strncat( filename , &GameList[ ( game * 2 * MAX_NAME_LENGTH ) + MAX_NAME_LENGTH ] , GetStringLengthTerminated( &GameList[ ( game * 2 * MAX_NAME_LENGTH ) + MAX_NAME_LENGTH ] , '[' ) - 1 );
 	strncat( filename , ".txt" , 5 );
