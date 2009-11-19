@@ -12,6 +12,7 @@
 #include <network.h>
 #include <stdint.h>
 #include <string>
+#include <sys/dir.h>
 
 extern "C" {
 #include <elm.h>
