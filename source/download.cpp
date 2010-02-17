@@ -1,4 +1,5 @@
 #include "download.h"
+#include "unistd.h"
 
 //--------------------------------------------------------------------------------
 char * GetGameName( char * body ) {
@@ -144,7 +145,7 @@ int DownloadCodes( int game , int type , char * GameList ) {
 
 	char * url = NULL;
 	try{
-		url = new char[50];
+		url = new char[80];
 	} catch (bad_alloc& ba) {
 		printf( "failed to alloc for url in DownloadCodes\n" );
 		ExitToLoader( -1 );
@@ -153,7 +154,7 @@ int DownloadCodes( int game , int type , char * GameList ) {
 	strncpy( url , "geckocodes.org" , 16 );
 	char * link = NULL;
 	try{
-		link = new char[30];
+		link = new char[80];
 	} catch (bad_alloc& ba) {
 		printf( "failed to alloc for link in DownloadCodes\n" );
 		ExitToLoader( -1 );
@@ -164,6 +165,7 @@ int DownloadCodes( int game , int type , char * GameList ) {
 	char * hostname = url;
 	PrintPositioned( 2 , 0 , "" );
 
+	dbgprintf( "url is : %s\n" , url );
 	dbgprintf( "hostname is : %s and filepath is : %s\n" , hostname , filepath );
 
 	// Get host info
@@ -196,13 +198,13 @@ int DownloadCodes( int game , int type , char * GameList ) {
 
 	char * getstring = NULL;
 	try{
-		getstring = new char[ strlen("GET HTTP/1.0\r\n\r\n") + strlen(filepath) + 1 ];
+		getstring = new char[ strlen("GET http://HTTP/1.0\r\n\r\n") + strlen(url) + 1 ];
 	} catch (bad_alloc& ba) {
 		printf( "failed to alloc for getstring in DownloadCodes\n" );
 		ExitToLoader( -1 );
 	}
 
-	sprintf( getstring , "GET %s HTTP/1.0\r\n\r\n" , filepath );
+	sprintf( getstring , "GET http://%s HTTP/1.0\r\n\r\n" , url );
 	int len  = strlen( getstring );
 	int sent = net_write( socket , getstring , len );
 	delete[] getstring;
@@ -378,7 +380,7 @@ int GetGameList( int category , int region , char * GameList ) {
 
 	char * url = NULL;
 	try{
-		url = new char[50];
+		url = new char[90];
 	} catch (bad_alloc& ba) {
 		dbgprintf( "failed to allocate buffer for url in GetGameList\n" );
 		ExitToLoader(-1);
@@ -413,6 +415,7 @@ int GetGameList( int category , int region , char * GameList ) {
 	strcat( url , wild );
 	char * filepath =  strchr( url , '/' );
 	char * hostname = strndup( url , filepath - url );
+	dbgprintf( "url is : %s\n" , url );
 	dbgprintf( "hostname is : %s and filepath is : %s\n" , hostname , filepath );
 
 	// Get host info
@@ -429,7 +432,8 @@ int GetGameList( int category , int region , char * GameList ) {
 		WaitForButtonPress();
 		return -1;
 	}
-	dbgprintf( "get game list hostname free\n" );
+	if ( DEBUG )
+		dbgprintf( "get game list hostname free\n" );
 	if ( hostname != NULL )
 		free(hostname);
 
@@ -450,13 +454,16 @@ int GetGameList( int category , int region , char * GameList ) {
 
 	char * getstring = NULL;
 	try{
-		getstring = new char[ strlen("GET HTTP/1.0\r\n\r\n") + strlen(filepath) + 1 ];
+		//getstring = new char[ strlen("GET HTTP/1.0\r\n\r\n") + strlen(filepath) + 2 ];
+		getstring = new char[ strlen("GET http://HTTP/1.0\r\n\r\n") + strlen(url) + 2 ];
 	} catch (bad_alloc& ba) {
 		dbgprintf( "failed to allocate buffer for getstring in GetGameList\n" );
 		ExitToLoader(-1);
 	}
 
-	sprintf( getstring , "GET %s HTTP/1.0\r\n\r\n" , filepath );
+	//sprintf( getstring , "GET %s HTTP/1.0\r\n\r\n" , filepath );
+	sprintf( getstring , "GET http://%s HTTP/1.0\r\n\r\n" , url );
+	dbgprintf( "request string: %s\n" , getstring );
 	int len  = strlen( getstring );
 	int sent = net_write( socket , getstring , len );
 	if ( sent < len )
@@ -525,6 +532,8 @@ int GetGameList( int category , int region , char * GameList ) {
 					dbgprintf("end of http header\n");
 					dataStarted = 1;
 					headerlength = lineend - buf + 1;
+				} else {
+					dbgprintf("unknown header: %s\n", line);
 				}
 			} else {
 				//dbgprintf( "DATA: %s\n" , line );
@@ -542,13 +551,16 @@ int GetGameList( int category , int region , char * GameList ) {
 	delete[] url;
 	//PrintResponse( response );
 	delete[] response.text;
-	dbgprintf( "response charset free: \n" );
+	if ( DEBUG )
+		dbgprintf( "response charset free: \n" );
 	if ( response.charset != NULL )
 		free(response.charset);
-	dbgprintf( "response modified free: \n" );
+	if ( DEBUG )
+		dbgprintf( "response modified free: \n" );
 	if ( response.modified != NULL )
 		free(response.modified);
-	dbgprintf( "response content type free: \n" );
+	if ( DEBUG )
+		dbgprintf( "response content type free: \n" );
 	if ( response.content_type != NULL )
 		free(response.content_type);
 	
@@ -560,6 +572,11 @@ int GetGameList( int category , int region , char * GameList ) {
 
 	// Set body as placeholder in page string
 	char * body = page;
+	if ( DEBUG )
+	{
+		dbgprintf("%s\n", page);
+		sleep(5);
+	}
 	// Set body to <BODY> or <body>
 	while( ( strncmp( body+1 , "BODY" , 4 ) != 0 ) && ( strncmp( body+1 , "body" , 4 ) != 0 ) ) {
 		body = strchr( body+1 , '<' );
@@ -568,6 +585,7 @@ int GetGameList( int category , int region , char * GameList ) {
 			return -1;
 		}
 	}
+	dbgprintf("BODY found\n");
 
 	// Loop to get start of titles
 	while( strncmp( body+1 , "div class=title" , 15 ) != 0 ) {
@@ -577,6 +595,7 @@ int GetGameList( int category , int region , char * GameList ) {
 			return -2;
 		}
 	}
+	dbgprintf("div class=title found\n");
 
 	int gameCount = 0;
 	int terminated = 0;

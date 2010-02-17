@@ -32,6 +32,8 @@ extern "C" {
 
 int stuff( unsigned int * output ); 
 
+#define DEBUG 0
+
 enum {
 	METHOD_AUTO,
 	METHOD_SD,

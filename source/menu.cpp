@@ -721,7 +721,7 @@ static int MenuGameList()
 	int timeout = 0;
 	count = GetGameList( info.type , info.region , GameList );
 	if ( count == -1 ){
-		dbgprintf( "GetGameList faile :(\n" );
+		dbgprintf( "GetGameList failed :(\n" );
 		dbgprintf( "No <BODY> found\n" );
 		//ExitToLoader(-1);
 	}
@@ -1634,8 +1634,9 @@ static int MenuMain()
 	{
 		usleep(THREAD_SLEEP);
 
-		if(userInput[0].wpad->ir.valid)
-			dbgprintf("Pointer Position: %f %f\n" , userInput[0].wpad->ir.x, userInput[0].wpad->ir.y );
+		if ( DEBUG )
+			if(userInput[0].wpad->ir.valid)
+				dbgprintf("Pointer Position: %f %f\n" , userInput[0].wpad->ir.x, userInput[0].wpad->ir.y );
 
 		if(downloadBtn.GetState() == STATE_CLICKED)
 		{
