@@ -3,6 +3,9 @@
 static void *xfb = NULL;
 static GXRModeObj *rmode = NULL;
 
+#define MYIP 0xc0a80092		//192.168.0.146
+//#define MYIP 0xc0a801b4		//192.168.1.144
+
 //s32 ExitRequested = 0;
 s8 HWButton = -1;
 //struct SSettings Settings;
@@ -48,9 +51,9 @@ void SetTextInfo( int color_fg , int color_bg , int attribute ) {
 //	Returns:	None
 //
 
-	printf( "\x1b[%dm" , attribute );
-	printf( "\x1b[%dm" , color_fg );
-	printf( "\x1b[%dm" , color_bg );
+	dbgprintf( "\x1b[%dm" , attribute );
+	dbgprintf( "\x1b[%dm" , color_fg );
+	dbgprintf( "\x1b[%dm" , color_bg );
 }
 
 //--------------------------------------------------------------------------------
@@ -61,7 +64,7 @@ void ClearText( ) {
 //	Returns:	None
 //
 
-	printf( "\x1b[2J" );
+	dbgprintf( "\x1b[2J" );
 }
 
 //--------------------------------------------------------------------------------
@@ -74,8 +77,8 @@ void PrintPositioned( int y , int x , const char * text ) {
 //	Returns:	None
 //
 
-	printf("\x1b[%d;%dH", y , x );
-	printf("%s" , text );
+	dbgprintf("\x1b[%d;%dH", y , x );
+	dbgprintf("%s" , text );
 }
 
 //--------------------------------------------------------------------------------
@@ -88,8 +91,8 @@ void PrintPositioned( int y , int x , string text ) {
 //	Returns:	None
 //
 
-	printf("\x1b[%d;%dH", y , x );
-	printf("%s" , text.c_str() );
+	dbgprintf("\x1b[%d;%dH", y , x );
+	dbgprintf("%s" , text.c_str() );
 }
 
 //--------------------------------------------------------------------------------
@@ -100,6 +103,7 @@ void ExitToLoader( int return_val ) {
 //	Return:		None		exits
 //
 
+	dbgprintf("\n\n\n\n\n\n\n");
 	dbgprintf("\x1b[25;5HThanks for using MegaDownloader\n");
 	ShutoffRumble();
 	StopGX();
@@ -154,11 +158,11 @@ void ShowProgramInfo() {
 //	Returns:	None
 //
 
-	printf("\x1b[2;0H");
-	printf("MegaCodeDownloader\n");
-	printf("coded by\n");
+	dbgprintf("\x1b[2;0H");
+	dbgprintf("MegaCodeDownloader\n");
+	dbgprintf("coded by\n");
 	SetTextInfo( BLINKING_TEXT , GREEN_FG , BLACK_BG );
-	printf("megazig\n");
+	dbgprintf("megazig\n");
 	SetTextInfo( RESET_TEXT , WHITE_FG , BLACK_BG );
 }
 
@@ -191,9 +195,9 @@ void PrintCharTerminated( char * text , char terminator ) {
 		int i;
 		for ( i = 0 ; i < length ; i++ )
 			printf("%.1s", text + i );
-		printf("\n");
+		dbgprintf("\n");
 	} else {
-		printf( "%s\n" , text );
+		dbgprintf( "%s\n" , text );
 	}
 }
 
@@ -270,17 +274,7 @@ void Init() {
 	printf("\x1b[2J");
 	printf("\x1b[2;0H");
 	ShowProgramInfo();
-
-	PrintPositioned( 15 , 0 , "Initializing FAT File System.........." );
 	*/
-	uSyncInit();
-	if ( ELM_Mount() & 1 ) {
-		//PrintPositioned( 15 , 45 , "ELM_Mount failed :( \n" );
-		dbgprintf( "ELM_Mount failed :( \n" );
-		//WaitForButtonPress();
-		ExitToLoader( EELMMOUNT );
-	}
-	//PrintPositioned( 15 , 45 , "COMPLETE\n" );
 
 	//PrintPositioned( 16 , 0 , "Initializing Network..................." );
 	char * myIpAddy = NULL;
@@ -297,9 +291,21 @@ void Init() {
 	}
 	//PrintPositioned( 16 , 45 , "COMPLETE\n" );
 
-	NCconnect(0xc0a80092); // 192.168.0.146
+	//NCconnect(0xc0a80092); // 192.168.0.146
+	NCconnect(MYIP);
 
 	dbgprintf("IP Address: %s\n", myIpAddy);
 	delete[] myIpAddy;
+
+	dbgprintf( "Initializing FAT File System.........." );
+	uSyncInit();
+	if ( ELM_Mount() & 1 ) {
+		//PrintPositioned( 15 , 45 , "ELM_Mount failed :( \n" );
+		dbgprintf( "ELM_Mount failed :( \n" );
+		//WaitForButtonPress();
+		ExitToLoader( EELMMOUNT );
+	}
+	dbgprintf( "COMPLETE\n" );
+
 }
 
