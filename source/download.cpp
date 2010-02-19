@@ -137,7 +137,8 @@ int DownloadCodes( int game , int type , char * GameList ) {
 //	Returns:	0 for success , negative for failure		as Integer
 //
 
-	PrintPositioned( 26 , 19 , "Downloading Codes\n");
+	//PrintPositioned( 26 , 19 , "Downloading Codes\n");
+	dbgprintf("Downloading codes\n");
 
 	char chid = GetGameTypeChar( type );
 
@@ -161,9 +162,11 @@ int DownloadCodes( int game , int type , char * GameList ) {
 	}
 
 	sprintf( link , "/codes/%c/%s.txt" , chid , &GameList[ game * 2 * MAX_NAME_LENGTH ] );
-	char * filepath = link;
-	char * hostname = url;
-	PrintPositioned( 2 , 0 , "" );
+	strcat( url , link );
+	//char * filepath = link;
+	char * filepath =  strchr( url , '/' );
+	char * hostname = strndup( url , filepath - url );
+	//PrintPositioned( 2 , 0 , "" );
 
 	dbgprintf( "url is : %s\n" , url );
 	dbgprintf( "hostname is : %s and filepath is : %s\n" , hostname , filepath );
@@ -171,19 +174,23 @@ int DownloadCodes( int game , int type , char * GameList ) {
 	// Get host info
 	struct hostent *host = net_gethostbyname(hostname);
 	struct sockaddr_in server;
+	dbgprintf("creating a socket for download\n");
 	// Create a socket
 	int socket = net_socket( AF_INET , SOCK_STREAM , IPPROTO_IP );
+	dbgprintf("socket created\n");
 	if ( host == NULL ) {
-		printf("host not found at %s :(\n", hostname);
+		dbgprintf("host not found at %s :(\n", hostname);
 		delete[] url;
 		delete[] link;
 		WaitForButtonPress();
 		return -1;
 	}
+	dbgprintf("host ok\n");
 	memset( &server , 0 , sizeof(server) );							// reset server var
 	server.sin_family	= AF_INET;									// IPv4
 	server.sin_port		= htons(80);								// Port 80
 	memcpy( &server.sin_addr , host->h_addr_list[0] , host->h_length );
+	dbgprintf("connecting to server\n");
 	if ( net_connect( socket , (struct sockaddr*)&server , sizeof(server) ) ) {
 		printf("failed to connect :(\n");
 		delete[] url;
@@ -198,13 +205,14 @@ int DownloadCodes( int game , int type , char * GameList ) {
 
 	char * getstring = NULL;
 	try{
-		getstring = new char[ strlen("GET http://HTTP/1.0\r\n\r\n") + strlen(url) + 1 ];
+		getstring = new char[ strlen("GET http://HTTP/1.0\r\n\r\n") + strlen(url) + 2 ];
 	} catch (bad_alloc& ba) {
 		printf( "failed to alloc for getstring in DownloadCodes\n" );
 		ExitToLoader( -1 );
 	}
 
 	sprintf( getstring , "GET http://%s HTTP/1.0\r\n\r\n" , url );
+	dbgprintf("getstring: %s\n", getstring);
 	int len  = strlen( getstring );
 	int sent = net_write( socket , getstring , len );
 	delete[] getstring;
@@ -271,6 +279,9 @@ int DownloadCodes( int game , int type , char * GameList ) {
 	char dataStarted = 0;
 	int headerlength = 0;
 
+	dbgprintf("buf offset: %p\n", buf);
+	dbgprintf("line offset: %p\n", line);
+
 	while( (read = net_read( socket , buf , bufferlen - 1 ) ) > 0 ) {
 		buf[read] = '\0';		// NULL TERMINATE AMOUNT READ
 		linebegin = buf;
@@ -319,6 +330,7 @@ int DownloadCodes( int game , int type , char * GameList ) {
 		received += read;
 	}
 	received -= headerlength;
+	dbgprintf("received bytes: %08x\n", received);
 	net_close(socket);
 
 	delete[] url;

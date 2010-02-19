@@ -22,6 +22,7 @@
 #include "common.h"
 #include "main.h"
 #include "download.h"
+#include "netconsole.h"
 
 #define THREAD_SLEEP 100
 
@@ -1682,6 +1683,8 @@ void MainMenu(int menu)
 	bgImg = new GuiImage(screenwidth, screenheight, (GXColor){50, 50, 50, 255});
 	bgImg->ColorStripe(30);
 	mainWindow->Append(bgImg);
+	dbgprintf("main window buffer: %p\n", mainWindow);
+	dbgprintf("vtable offset: %p\n", *(unsigned int*)mainWindow );
 
 	GuiTrigger trigA;
 	trigA.SetSimpleTrigger(-1, WPAD_BUTTON_A | WPAD_CLASSIC_BUTTON_A, PAD_BUTTON_A);
